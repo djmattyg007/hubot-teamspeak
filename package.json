@@ -33,7 +33,6 @@
   "devDependencies": {
     "grunt": "~0.4.1",
     "grunt-contrib-coffee": "~0.6.2",
-    "grunt-contrib-nodeunit": "~0.2.0",
     "grunt-coffeelint": "~0.0.6"
   },
   "readme": "# Hubot Teamspeak Adapter",
