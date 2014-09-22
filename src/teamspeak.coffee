@@ -4,25 +4,28 @@ Adapter = require '../../hubot/src/adapter'
 {TextMessage, EnterMessage, LeaveMessage} = require '../../hubot/src/message'
 
 # teamspeak library
-Teamspeak = require 'node-teamspeak-fix'
+TeamSpeakClient = require 'node-teamspeak-fix'
 util = require 'util'
 fs = require 'fs'
 
-class TeamspeakBot extends Adapter
+class TeamSpeakAdapter extends Adapter
     send: (envelope, strings...) ->
         console.log "Sending"
         for str in strings
-            @message envelope.user, str
+            @message envelope.user, envelope.room, str
 
     reply: (envelope, strings...) ->
         console.log "Replying"
         for str in strings
-            @message envelope.user, str
+            @message envelope.user, envelope.room, str
 
-    message: (client, message) ->
+    message: (client, room, message) ->
         self = @
         console.log "Firing sendtextmessage"
-        self.bot.send "sendtextmessage", {targetmode: 1, target: client.clid, msg: message}, []
+        target = client.clid if room == 1
+        target = client.cid if room == 2
+        target = self.config.serverid if room == 3
+        self.bot.send "sendtextmessage", {targetmode: room, target: target, msg: message}, []
         console.log "Done firing sendtextmessage"
 
     getUserFromName: (name) ->
@@ -61,7 +64,7 @@ class TeamspeakBot extends Adapter
         @loadConfig process.env.HUBOT_TEAMSPEAK_CONFIG
 
         @robot.name = @config.nickname
-        bot = new Teamspeak @config.server
+        bot = new TeamSpeakClient @config.server
         @bot = bot
 
         do @doLogin
@@ -73,6 +76,7 @@ class TeamspeakBot extends Adapter
                 self.bot.send "clientupdate", {client_nickname: self.config.nickname}, []
                 do self.doBinds
                 self.emit "connected"
+
     doBinds: ->
         self = @
         self.bot.send "servernotifyregister", {event: "textprivate"}, []
@@ -85,10 +89,11 @@ class TeamspeakBot extends Adapter
                 self.bot.send "servernotifyregister", {event: "textchannel", id: channel.cid}, []
 
         self.bot.on 'connect', (err, response) ->
-            console.log response
+            if typeof response != "undefined"
+                console.log response
 
         self.bot.on 'error', (err) ->
-            console.log err
+            console.log "bot error: " + err
 
         console.log "Binding TextMessage"
         self.bot.on "textmessage", (event) ->
@@ -96,15 +101,16 @@ class TeamspeakBot extends Adapter
             unless user?
                 self.bot.send "clientinfo", {clid: event.invokerid}, [], (err, client) ->
                     client.clid = event.invokerid
-                    console.log client
                     user = self.createUser client
-                    self.buildTextMessage user, event.msg
+                    self.buildTextMessage user, event.targetmode, event.msg
                     return
 
-            self.buildTextMessage user, event.msg
+            self.buildTextMessage user, event.targetmode, event.msg
 
-    buildTextMessage: (user, message) ->
-        @receive new TextMessage user, message
+    buildTextMessage: (user, target, msgtext) ->
+        message = new TextMessage user, msgtext
+        message.room = target
+        @receive message
 
     receive: (message) ->
         @robot.receive message
@@ -114,4 +120,4 @@ class TeamspeakBot extends Adapter
         console.log e
 
 exports.use = (robot) ->
-  new TeamspeakBot robot
+    new TeamSpeakAdapter robot
