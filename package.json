@@ -1,6 +1,6 @@
 {
   "name": "hubot-teamspeak-fix",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "author": {
     "name": "Aaron Scherer",
     "email": "aequasi@gmail.com"
@@ -28,7 +28,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "node-teamspeak-fix": "2.0.4"
+    "node-teamspeak-fix": "2.0.5"
   },
   "devDependencies": {
     "grunt": "~0.4.1",
